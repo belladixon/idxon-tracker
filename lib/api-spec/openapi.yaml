@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Reading Tracker API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: sessions
+    description: Reading session operations
+  - name: stats
+    description: Statistics and insights
 paths:
   /healthz:
     get:
@@ -24,6 +28,169 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /sessions:
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      summary: List all reading sessions
+      description: Returns all reading sessions ordered by date descending
+      responses:
+        "200":
+          description: List of reading sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Session"
+    post:
+      operationId: createSession
+      tags: [sessions]
+      summary: Create a reading session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSessionBody"
+      responses:
+        "201":
+          description: Created session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /sessions/{id}:
+    get:
+      operationId: getSession
+      tags: [sessions]
+      summary: Get a single reading session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Session found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateSession
+      tags: [sessions]
+      summary: Update a reading session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSessionBody"
+      responses:
+        "200":
+          description: Updated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteSession
+      tags: [sessions]
+      summary: Delete a reading session
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /stats/weekly-summary:
+    get:
+      operationId: getWeeklySummary
+      tags: [stats]
+      summary: Get the current week summary
+      description: Returns total sessions, total minutes, and days read for the current ISO week
+      responses:
+        "200":
+          description: Weekly summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklySummary"
+
+  /stats/weekly-history:
+    get:
+      operationId: getWeeklyHistory
+      tags: [stats]
+      summary: Get per-week history of session counts and minutes
+      description: Returns the last 8 weeks of reading history grouped by ISO week
+      responses:
+        "200":
+          description: Weekly history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WeeklyHistory"
+
+  /stats/insights:
+    get:
+      operationId: getInsights
+      tags: [stats]
+      summary: Get reading insights
+      description: Returns average session duration, longest streak, and current streak
+      responses:
+        "200":
+          description: Insights
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Insights"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +201,129 @@ components:
       required:
         - status
 
+    Session:
+      type: object
+      properties:
+        id:
+          type: integer
+        date:
+          type: string
+          description: ISO date string (YYYY-MM-DD)
+        durationMinutes:
+          type: integer
+          description: Duration of the reading session in minutes
+        notes:
+          type: ["string", "null"]
+          description: Optional notes about the session
+        createdAt:
+          type: string
+          description: ISO timestamp when session was created
+      required:
+        - id
+        - date
+        - durationMinutes
+        - notes
+        - createdAt
+
+    CreateSessionBody:
+      type: object
+      properties:
+        date:
+          type: string
+          description: ISO date string (YYYY-MM-DD)
+        durationMinutes:
+          type: integer
+          minimum: 1
+          description: Duration in minutes
+        notes:
+          type: ["string", "null"]
+          description: Optional notes
+      required:
+        - date
+        - durationMinutes
+
+    UpdateSessionBody:
+      type: object
+      properties:
+        date:
+          type: string
+          description: ISO date string (YYYY-MM-DD)
+        durationMinutes:
+          type: integer
+          minimum: 1
+          description: Duration in minutes
+        notes:
+          type: ["string", "null"]
+          description: Optional notes
+
+    WeeklySummary:
+      type: object
+      properties:
+        totalSessions:
+          type: integer
+          description: Number of sessions logged this week
+        totalMinutes:
+          type: integer
+          description: Total reading minutes this week
+        daysRead:
+          type: integer
+          description: Number of distinct days with at least one session this week
+        weekLabel:
+          type: string
+          description: Human-readable label like "Apr 21 – Apr 27"
+      required:
+        - totalSessions
+        - totalMinutes
+        - daysRead
+        - weekLabel
+
+    WeeklyHistory:
+      type: object
+      properties:
+        weekLabel:
+          type: string
+          description: Human-readable label like "Apr 14 – Apr 20"
+        totalSessions:
+          type: integer
+        totalMinutes:
+          type: integer
+        daysRead:
+          type: integer
+      required:
+        - weekLabel
+        - totalSessions
+        - totalMinutes
+        - daysRead
+
+    Insights:
+      type: object
+      properties:
+        averageDurationMinutes:
+          type: number
+          description: Average session duration in minutes across all sessions
+        currentStreak:
+          type: integer
+          description: Number of consecutive days read up to today
+        longestStreak:
+          type: integer
+          description: Longest ever consecutive-day reading streak
+        totalSessions:
+          type: integer
+          description: All-time total number of sessions
+        totalMinutes:
+          type: integer
+          description: All-time total reading minutes
+      required:
+        - averageDurationMinutes
+        - currentStreak
+        - longestStreak
+        - totalSessions
+        - totalMinutes
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
