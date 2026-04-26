@@ -1,6 +1,5 @@
 import { Router, type IRouter } from "express";
-import { db, sessionsTable } from "@workspace/db";
-import { desc } from "drizzle-orm";
+import { supabase, type SessionRow } from "../lib/supabase";
 
 const router: IRouter = Router();
 
@@ -28,11 +27,18 @@ function isoDateToDate(isoDate: string): Date {
 }
 
 router.get("/stats/weekly-summary", async (req, res): Promise<void> => {
-  const allSessions = await db
-    .select()
-    .from(sessionsTable)
-    .orderBy(desc(sessionsTable.date));
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("*")
+    .order("date", { ascending: false });
 
+  if (error) {
+    req.log.error({ error }, "Failed to fetch sessions for weekly summary");
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  const allSessions = (data as SessionRow[]) ?? [];
   const now = new Date();
   const { start, end } = getISOWeekBounds(now);
 
@@ -41,28 +47,29 @@ router.get("/stats/weekly-summary", async (req, res): Promise<void> => {
     return d >= start && d <= end;
   });
 
-  const totalSessions = weekSessions.length;
-  const totalMinutes = weekSessions.reduce((acc, s) => acc + s.durationMinutes, 0);
-  const daysSet = new Set(weekSessions.map((s) => s.date));
-  const daysRead = daysSet.size;
-  const weekLabel = formatWeekLabel(start, end);
-
-  res.json({ totalSessions, totalMinutes, daysRead, weekLabel });
+  res.json({
+    totalSessions: weekSessions.length,
+    totalMinutes: weekSessions.reduce((acc, s) => acc + s.duration_minutes, 0),
+    daysRead: new Set(weekSessions.map((s) => s.date)).size,
+    weekLabel: formatWeekLabel(start, end),
+  });
 });
 
 router.get("/stats/weekly-history", async (req, res): Promise<void> => {
-  const allSessions = await db
-    .select()
-    .from(sessionsTable)
-    .orderBy(desc(sessionsTable.date));
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("*")
+    .order("date", { ascending: false });
 
+  if (error) {
+    req.log.error({ error }, "Failed to fetch sessions for weekly history");
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  const allSessions = (data as SessionRow[]) ?? [];
   const now = new Date();
-  const weeks: Array<{
-    weekLabel: string;
-    totalSessions: number;
-    totalMinutes: number;
-    daysRead: number;
-  }> = [];
+  const weeks = [];
 
   for (let i = 7; i >= 0; i--) {
     const weekDate = new Date(now);
@@ -77,7 +84,7 @@ router.get("/stats/weekly-history", async (req, res): Promise<void> => {
     weeks.push({
       weekLabel: formatWeekLabel(start, end),
       totalSessions: weekSessions.length,
-      totalMinutes: weekSessions.reduce((acc, s) => acc + s.durationMinutes, 0),
+      totalMinutes: weekSessions.reduce((acc, s) => acc + s.duration_minutes, 0),
       daysRead: new Set(weekSessions.map((s) => s.date)).size,
     });
   }
@@ -86,50 +93,51 @@ router.get("/stats/weekly-history", async (req, res): Promise<void> => {
 });
 
 router.get("/stats/insights", async (req, res): Promise<void> => {
-  const allSessions = await db
-    .select()
-    .from(sessionsTable)
-    .orderBy(desc(sessionsTable.date));
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("*")
+    .order("date", { ascending: true });
 
+  if (error) {
+    req.log.error({ error }, "Failed to fetch sessions for insights");
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  const allSessions = (data as SessionRow[]) ?? [];
   const totalSessions = allSessions.length;
-  const totalMinutes = allSessions.reduce((acc, s) => acc + s.durationMinutes, 0);
+  const totalMinutes = allSessions.reduce((acc, s) => acc + s.duration_minutes, 0);
   const averageDurationMinutes =
-    totalSessions > 0 ? totalMinutes / totalSessions : 0;
+    totalSessions > 0
+      ? Math.round((totalMinutes / totalSessions) * 10) / 10
+      : 0;
 
   const uniqueDays = Array.from(new Set(allSessions.map((s) => s.date))).sort();
 
   let currentStreak = 0;
-  let longestStreak = 0;
+  let longestStreak = uniqueDays.length > 0 ? 1 : 0;
 
   if (uniqueDays.length > 0) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().slice(0, 10);
-    const yesterdayDate = new Date(today);
-    yesterdayDate.setDate(today.getDate() - 1);
-    const yesterdayStr = yesterdayDate.toISOString().slice(0, 10);
-
     const daySet = new Set(uniqueDays);
-    const sortedDays = [...uniqueDays].sort().reverse();
 
-    let streak = 0;
     let checkDate = new Date(today);
     if (!daySet.has(todayStr)) {
-      checkDate = yesterdayDate;
+      checkDate.setDate(checkDate.getDate() - 1);
     }
     while (true) {
       const checkStr = checkDate.toISOString().slice(0, 10);
       if (daySet.has(checkStr)) {
-        streak++;
+        currentStreak++;
         checkDate.setDate(checkDate.getDate() - 1);
       } else {
         break;
       }
     }
-    currentStreak = streak;
 
     let tempStreak = 1;
-    longestStreak = 1;
     for (let i = 1; i < uniqueDays.length; i++) {
       const prev = isoDateToDate(uniqueDays[i - 1]);
       const curr = isoDateToDate(uniqueDays[i]);
@@ -144,7 +152,7 @@ router.get("/stats/insights", async (req, res): Promise<void> => {
   }
 
   res.json({
-    averageDurationMinutes: Math.round(averageDurationMinutes * 10) / 10,
+    averageDurationMinutes,
     currentStreak,
     longestStreak,
     totalSessions,

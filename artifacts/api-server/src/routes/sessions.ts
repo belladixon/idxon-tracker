@@ -1,6 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, desc } from "drizzle-orm";
-import { db, sessionsTable } from "@workspace/db";
+import { supabase, type SessionRow } from "../lib/supabase";
 import {
   CreateSessionBody,
   GetSessionParams,
@@ -11,12 +10,30 @@ import {
 
 const router: IRouter = Router();
 
+function toApiSession(row: SessionRow) {
+  return {
+    id: row.id,
+    date: row.date,
+    durationMinutes: row.duration_minutes,
+    notes: row.notes,
+    createdAt: row.created_at,
+  };
+}
+
 router.get("/sessions", async (req, res): Promise<void> => {
-  const sessions = await db
-    .select()
-    .from(sessionsTable)
-    .orderBy(desc(sessionsTable.date), desc(sessionsTable.createdAt));
-  res.json(sessions);
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("*")
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    req.log.error({ error }, "Failed to list sessions");
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  res.json((data as SessionRow[]).map(toApiSession));
 });
 
 router.post("/sessions", async (req, res): Promise<void> => {
@@ -26,12 +43,23 @@ router.post("/sessions", async (req, res): Promise<void> => {
     return;
   }
 
-  const [session] = await db
-    .insert(sessionsTable)
-    .values(parsed.data)
-    .returning();
+  const { data, error } = await supabase
+    .from("sessions")
+    .insert({
+      date: parsed.data.date,
+      duration_minutes: parsed.data.durationMinutes,
+      notes: parsed.data.notes ?? null,
+    })
+    .select()
+    .single();
 
-  res.status(201).json(session);
+  if (error) {
+    req.log.error({ error }, "Failed to create session");
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  res.status(201).json(toApiSession(data as SessionRow));
 });
 
 router.get("/sessions/:id", async (req, res): Promise<void> => {
@@ -41,17 +69,18 @@ router.get("/sessions/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const [session] = await db
-    .select()
-    .from(sessionsTable)
-    .where(eq(sessionsTable.id, params.data.id));
+  const { data, error } = await supabase
+    .from("sessions")
+    .select("*")
+    .eq("id", params.data.id)
+    .single();
 
-  if (!session) {
+  if (error || !data) {
     res.status(404).json({ error: "Session not found" });
     return;
   }
 
-  res.json(session);
+  res.json(toApiSession(data as SessionRow));
 });
 
 router.patch("/sessions/:id", async (req, res): Promise<void> => {
@@ -67,18 +96,25 @@ router.patch("/sessions/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const [session] = await db
-    .update(sessionsTable)
-    .set(parsed.data)
-    .where(eq(sessionsTable.id, params.data.id))
-    .returning();
+  const updates: Record<string, unknown> = {};
+  if (parsed.data.date !== undefined) updates.date = parsed.data.date;
+  if (parsed.data.durationMinutes !== undefined)
+    updates.duration_minutes = parsed.data.durationMinutes;
+  if (parsed.data.notes !== undefined) updates.notes = parsed.data.notes;
 
-  if (!session) {
+  const { data, error } = await supabase
+    .from("sessions")
+    .update(updates)
+    .eq("id", params.data.id)
+    .select()
+    .single();
+
+  if (error || !data) {
     res.status(404).json({ error: "Session not found" });
     return;
   }
 
-  res.json(session);
+  res.json(toApiSession(data as SessionRow));
 });
 
 router.delete("/sessions/:id", async (req, res): Promise<void> => {
@@ -88,13 +124,14 @@ router.delete("/sessions/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  const [session] = await db
-    .delete(sessionsTable)
-    .where(eq(sessionsTable.id, params.data.id))
-    .returning();
+  const { error } = await supabase
+    .from("sessions")
+    .delete()
+    .eq("id", params.data.id);
 
-  if (!session) {
-    res.status(404).json({ error: "Session not found" });
+  if (error) {
+    req.log.error({ error }, "Failed to delete session");
+    res.status(500).json({ error: error.message });
     return;
   }
 
