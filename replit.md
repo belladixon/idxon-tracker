@@ -69,12 +69,41 @@ Client-side prototype auth: username stored in `localStorage` under key `rt_user
 - Chart has `role="img"` and descriptive `aria-label`
 - Dynamic page `<title>` updates on route change via `useEffect` in Layout
 
-## Azure Portability
+## Azure Deployment (App Service)
 
-- No Replit-specific dependencies in application code
-- Uses standard PostgreSQL (Supabase, Azure Database for PostgreSQL compatible)
-- Frontend builds to static files (Azure Static Web Apps compatible)
-- Backend is a standard Node.js/Express app (Azure App Service compatible)
+Use **Azure App Service** (not Static Web Apps). The Express server handles both the API and the built frontend — one process, one port.
+
+### Build
+```
+pnpm install
+pnpm run build       # typecheck + vite build + esbuild
+```
+
+Vite output → `artifacts/reading-tracker/dist/public/`
+esbuild output → `artifacts/api-server/dist/index.mjs`
+
+### Start command (Azure → Startup Command)
+```
+pnpm run start
+# resolves to: NODE_ENV=production node artifacts/api-server/dist/index.mjs
+```
+
+### Required environment variables on Azure
+| Variable | Description |
+|---|---|
+| `PORT` | Set automatically by Azure App Service (default 8080) |
+| `SUPABASE_URL` | Your Supabase project ref, e.g. `qzhcoszuytybegmrlcxo` |
+| `SUPABASE_ANON_KEY` | Your Supabase anon/public API key |
+
+### How it works in production
+- `GET /api/*` → handled by Express routes (Supabase queries)
+- `GET /` and static assets → served from `dist/public/` via `express.static()`
+- `GET /dashboard`, `/history`, etc. → SPA fallback serves `index.html` so Wouter handles routing client-side
+
+### Notes
+- Replit-specific Vite plugins (`@replit/vite-plugin-*`) are gated on `REPL_ID` — they are never loaded in Azure builds
+- `PORT` and `BASE_PATH` are optional during `vite build` (default to 3000 and `/`)
+- The `cors()` middleware is included but has no effect when frontend and API share the same origin
 
 ## Notes
 
