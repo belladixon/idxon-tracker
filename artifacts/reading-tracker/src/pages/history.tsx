@@ -36,9 +36,16 @@ export default function History() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <header>
-        <h1 className="text-3xl font-serif tracking-tight">Your History</h1>
-        <p className="text-muted-foreground mt-1">A look back at the moments you've dedicated to reading.</p>
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-serif tracking-tight">Your History</h1>
+          <p className="text-muted-foreground mt-1">A look back at the moments you've dedicated to reading.</p>
+        </div>
+        {sessions && sessions.length > 0 && (
+          <div className="text-sm font-medium text-primary bg-primary/10 px-3 py-1 rounded-full w-fit">
+            {sessions.length} session{sessions.length === 1 ? '' : 's'} logged
+          </div>
+        )}
       </header>
 
       {isLoading ? (
@@ -46,7 +53,7 @@ export default function History() {
           {[1, 2, 3, 4].map(i => (
             <Card key={i} className="border-border/50">
               <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4">
-                <Skeleton className="h-12 w-12 rounded-full" />
+                <Skeleton className="h-16 w-16 rounded-2xl" />
                 <div className="space-y-2 flex-1">
                   <Skeleton className="h-5 w-32" />
                   <Skeleton className="h-4 w-full max-w-[200px]" />
@@ -62,14 +69,14 @@ export default function History() {
           </CardContent>
         </Card>
       ) : !sessions || sessions.length === 0 ? (
-        <Card className="border-border/50 bg-card/50 text-center py-12">
-          <CardContent className="space-y-4 pt-6">
-            <div className="mx-auto bg-primary/10 w-12 h-12 rounded-full flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-primary" />
+        <Card className="border-border/50 bg-card/50 text-center py-16 rounded-3xl">
+          <CardContent className="space-y-5 pt-6">
+            <div className="mx-auto bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center">
+              <BookOpen className="w-8 h-8 text-primary" />
             </div>
-            <div className="space-y-1">
-              <h3 className="font-medium text-lg">No sessions yet</h3>
-              <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+            <div className="space-y-2">
+              <h3 className="font-serif text-2xl">No sessions yet</h3>
+              <p className="text-muted-foreground max-w-sm mx-auto leading-relaxed">
                 Your history is waiting to be written. Log your first reading session to get started.
               </p>
             </div>
@@ -145,27 +152,27 @@ function SessionRow({ session }: { session: Session }) {
 
   if (isEditing) {
     return (
-      <Card className="border-primary bg-primary/5">
+      <Card className="border-primary bg-primary/5 rounded-2xl overflow-hidden">
         <CardContent className="p-4 sm:p-6 space-y-4 pt-6">
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-xs font-medium">Date</label>
-              <Input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="bg-background" />
+              <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Date</label>
+              <Input type="date" value={editDate} onChange={e => setEditDate(e.target.value)} className="bg-background" data-testid={`input-edit-date-${session.id}`} />
             </div>
             <div className="space-y-2">
-              <label className="text-xs font-medium">Duration (minutes)</label>
-              <Input type="number" min="1" value={editDuration} onChange={e => setEditDuration(e.target.value)} className="bg-background" />
+              <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Duration (minutes)</label>
+              <Input type="number" min="1" value={editDuration} onChange={e => setEditDuration(e.target.value)} className="bg-background" data-testid={`input-edit-duration-${session.id}`} />
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-medium">Notes</label>
-            <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} className="bg-background resize-none min-h-[80px]" />
+            <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Notes</label>
+            <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} className="bg-background resize-none min-h-[80px]" data-testid={`input-edit-notes-${session.id}`} />
           </div>
           <div className="flex items-center justify-end gap-2 pt-2">
-            <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} disabled={updateSession.isPending}>
+            <Button variant="ghost" size="sm" onClick={() => setIsEditing(false)} disabled={updateSession.isPending} data-testid={`button-cancel-edit-${session.id}`}>
               <X className="w-4 h-4 mr-1" /> Cancel
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={updateSession.isPending}>
+            <Button size="sm" onClick={handleSave} disabled={updateSession.isPending} className="rounded-full" data-testid={`button-save-edit-${session.id}`}>
               <Check className="w-4 h-4 mr-1" /> Save
             </Button>
           </div>
@@ -175,46 +182,46 @@ function SessionRow({ session }: { session: Session }) {
   }
 
   return (
-    <Card className="border-border/50 shadow-sm hover-elevate transition-all group">
+    <Card className="border-border/50 shadow-sm hover-elevate transition-all group rounded-2xl">
       <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row gap-4 sm:items-start">
-        <div className="bg-secondary text-secondary-foreground rounded-xl p-3 flex flex-col items-center justify-center shrink-0 w-16 h-16 sm:w-20 sm:h-20">
-          <span className="text-lg sm:text-2xl font-serif font-medium leading-none">{session.durationMinutes}</span>
-          <span className="text-[10px] sm:text-xs uppercase tracking-wider font-medium opacity-80 mt-1">min</span>
+        <div className="bg-secondary text-secondary-foreground rounded-2xl p-3 flex flex-col items-center justify-center shrink-0 w-20 h-20 shadow-sm border border-secondary-foreground/10">
+          <span className="text-2xl sm:text-3xl font-serif font-medium leading-none">{session.durationMinutes}</span>
+          <span className="text-[10px] sm:text-xs uppercase tracking-widest font-medium opacity-70 mt-1">min</span>
         </div>
         
-        <div className="flex-1 space-y-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-            <Calendar className="w-4 h-4" />
+        <div className="flex-1 space-y-3 py-1">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium uppercase tracking-wide">
+            <Calendar className="w-4 h-4 text-primary/70" />
             {format(parseISO(session.date), 'MMM d, yyyy')}
           </div>
           {session.notes && (
-            <p className="text-foreground text-sm sm:text-base leading-relaxed">
+            <p className="text-foreground text-base leading-relaxed font-light">
               {session.notes}
             </p>
           )}
         </div>
 
-        <div className="flex sm:flex-col items-center sm:items-end justify-end gap-2 shrink-0 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => setIsEditing(true)}>
-            <Edit2 className="w-4 h-4" />
+        <div className="flex sm:flex-col items-center sm:items-end justify-end gap-2 shrink-0 pt-2 sm:pt-0">
+          <Button variant="secondary" size="sm" className="h-9 px-3 text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary" onClick={() => setIsEditing(true)} data-testid={`button-edit-session-${session.id}`}>
+            <Edit2 className="w-3.5 h-3.5 mr-1.5" /> Edit
           </Button>
           
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
-                <Trash2 className="w-4 h-4" />
+              <Button variant="ghost" size="sm" className="h-9 px-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10" data-testid={`button-delete-session-${session.id}`}>
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent>
+            <AlertDialogContent className="rounded-3xl">
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete session?</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogTitle className="font-serif text-2xl">Delete session?</AlertDialogTitle>
+                <AlertDialogDescription className="text-base">
                   This will permanently remove this reading session from your history. This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogFooter className="mt-4">
+                <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete} className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90" data-testid={`button-confirm-delete-${session.id}`}>
                   Delete
                 </AlertDialogAction>
               </AlertDialogFooter>
