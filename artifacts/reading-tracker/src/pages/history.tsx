@@ -202,14 +202,27 @@ function SessionRow({ session }: { session: Session }) {
         </div>
 
         <div className="flex sm:flex-col items-center sm:items-end justify-end gap-2 shrink-0 pt-2 sm:pt-0">
-          <Button variant="secondary" size="sm" className="h-9 px-3 text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary" onClick={() => setIsEditing(true)} data-testid={`button-edit-session-${session.id}`}>
-            <Edit2 className="w-3.5 h-3.5 mr-1.5" /> Edit
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-9 px-3 text-muted-foreground hover:text-foreground bg-secondary/50 hover:bg-secondary"
+            onClick={() => setIsEditing(true)}
+            data-testid={`button-edit-session-${session.id}`}
+            aria-label={`Edit session from ${format(parseISO(session.date), 'MMM d, yyyy')}`}
+          >
+            <Edit2 className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" /> Edit
           </Button>
-          
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-9 px-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10" data-testid={`button-delete-session-${session.id}`}>
-                <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Delete
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-9 px-3 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                data-testid={`button-delete-session-${session.id}`}
+                aria-label={`Delete session from ${format(parseISO(session.date), 'MMM d, yyyy')}`}
+              >
+                <Trash2 className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" /> Delete
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent className="rounded-3xl">

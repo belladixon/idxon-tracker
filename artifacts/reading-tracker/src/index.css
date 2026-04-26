@@ -92,17 +92,17 @@
   --popover-foreground: 120 15% 15%;
   --popover-border: 150 15% 88%;
 
-  /* Sage Green primary */
-  --primary: 150 25% 45%;
+  /* Sage Green primary — darkened to meet WCAG AA 4.5:1 with white text */
+  --primary: 150 28% 38%;
   --primary-foreground: 0 0% 100%;
 
   /* Gentle Lavender secondary */
   --secondary: 270 20% 90%;
   --secondary-foreground: 270 30% 30%;
 
-  /* Warm muted */
+  /* Warm muted — foreground darkened to meet WCAG AA 4.5:1 */
   --muted: 45 30% 94%;
-  --muted-foreground: 120 10% 45%;
+  --muted-foreground: 120 10% 38%;
 
   --accent: 150 20% 92%;
   --accent-foreground: 150 30% 30%;
@@ -111,16 +111,16 @@
   --destructive-foreground: 0 0% 100%;
 
   --input: 150 15% 85%;
-  --ring: 150 25% 45%;
+  --ring: 150 28% 38%;
 
   --sidebar: 45 40% 98%;
   --sidebar-foreground: 120 15% 15%;
   --sidebar-border: 150 15% 88%;
-  --sidebar-primary: 150 25% 45%;
+  --sidebar-primary: 150 28% 38%;
   --sidebar-primary-foreground: 0 0% 100%;
   --sidebar-accent: 150 20% 92%;
   --sidebar-accent-foreground: 150 30% 30%;
-  --sidebar-ring: 150 25% 45%;
+  --sidebar-ring: 150 28% 38%;
 
   /* Charts */
   --chart-1: 150 25% 45%;

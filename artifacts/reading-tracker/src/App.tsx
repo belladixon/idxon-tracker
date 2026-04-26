@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { Layout } from "@/components/layout";
 import Home from "@/pages/home";
 import Login from "@/pages/login";
@@ -9,16 +9,21 @@ import Insights from "@/pages/insights";
 import Profile from "@/pages/profile";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
 
 function ProtectedRoute({ component: Component, ...rest }: any) {
-  const { isAuthenticated } = useAuth();
-  
-  if (!isAuthenticated) {
-    return <Redirect to="/login" />;
-  }
-  
+  const { isAuthenticated, ready } = useAuth();
+  // Wait until localStorage has been checked before redirecting
+  if (!ready) return null;
+  if (!isAuthenticated) return <Redirect to="/login" />;
   return <Component {...rest} />;
+}
+
+function LoginRoute() {
+  const { isAuthenticated, ready } = useAuth();
+  // Wait until localStorage has been checked before redirecting
+  if (!ready) return null;
+  if (isAuthenticated) return <Redirect to="/dashboard" />;
+  return <Login />;
 }
 
 export default function App() {
@@ -26,7 +31,7 @@ export default function App() {
     <Layout>
       <Switch>
         <Route path="/" component={Home} />
-        <Route path="/login" component={Login} />
+        <Route path="/login" component={LoginRoute} />
         <Route path="/dashboard" component={() => <ProtectedRoute component={Dashboard} />} />
         <Route path="/add-session" component={() => <ProtectedRoute component={AddSession} />} />
         <Route path="/history" component={() => <ProtectedRoute component={History} />} />

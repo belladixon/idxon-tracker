@@ -137,7 +137,11 @@ export default function Insights() {
             </CardHeader>
             <CardContent className="p-8">
               {formattedHistory.length > 0 ? (
-                <div className="h-[350px] w-full">
+                <div
+                  className="h-[350px] w-full"
+                  role="img"
+                  aria-label={`Bar chart showing reading minutes per week for the past 8 weeks. Total: ${insights.totalMinutes} minutes across ${insights.totalSessions} sessions.`}
+                >
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={[...formattedHistory].reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                       <XAxis 
